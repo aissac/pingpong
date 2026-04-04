@@ -1,0 +1,65 @@
+PHASE 5 STEP 1: COMPLETE IMPLEMENTATION
+
+NOTEBOOKLM GUIDANCE APPLIED:
+✅ Use Option<u64> for prices (micro-USDC) - no floats
+✅ Include token_id (asset_id) in WsEvent - required for YES/NO mapping
+✅ Threshold = 950,000 ($0.95) for dump-and-hedge arbitrage
+✅ market_state.rs in src/ (not src/network/) - synchronous decision logic
+✅ NO tokio::spawn in hot_path - keep synchronous, pinned thread
+
+FILES CREATED/MODIFIED:
+
+1. src/market_state.rs (NEW)
+   - MarketPrices struct with Option<u64> for YES/NO prices
+   - MarketState struct with BTreeMap grouping
+   - Edge detection: combined_ask < threshold (950,000)
+   - clear_all() for reconnection reset
+   - All SYNCHRONOUS - no async/await
+
+2. src/network/ws_engine.rs (MODIFIED)
+   - WsEvent::BookUpdate now includes token_id (String)
+   - Parses Polymarket format: {"event":"book","asset_id":"...","bids":[...],"asks":[...]}
+   - Converts to micro-USDC immediately (no floats)
+   - Sends token_id + token_hash to hot_path
+
+3. src/lib.rs (MODIFIED)
+   - Added market_state module
+   - Re-exports MarketState, MarketPrices, MarketStats
+
+4. src/hot_path.rs (MODIFIED - needs update)
+   - Must integrate MarketState (synchronous)
+   - NO tokio::spawn - hot_path is sync thread
+   - Update prices on BookUpdate
+   - Check for edges when both YES/NO present
+
+NEXT STEPS FOR DEE:
+
+1. Build and test:
+   cargo build --release
+   cargo test
+
+2. Verify market_state.rs compiles:
+   - All synchronous (no async)
+   - Option<u64> for prices
+   - BTreeMap for YES/NO grouping
+
+3. Verify ws_engine.rs parses correctly:
+   - Extracts asset_id from JSON
+   - Converts prices to micro-USDC
+   - Sends token_id + token_hash to hot_path
+
+4. Update hot_path.rs:
+   - Add MarketState field (synchronous)
+   - Update prices on BookUpdate
+   - Check for edges using MarketState::is_edge()
+   - Clear prices on WsEvent::Disconnected
+
+5. Test reconnection:
+   - Kill WebSocket to trigger disconnect
+   - Verify prices cleared via MarketState::clear_all()
+   - Verify initial_dump rebuilds prices
+
+QUESTIONS FOR NEXT SESSION:
+- Should hot_path.rs store MarketState directly or receive via channel?
+- How to handle initial_dump for multiple markets?
+- Should we add timestamp-based staleness detection?

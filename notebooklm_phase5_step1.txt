@@ -1,0 +1,41 @@
+Phase 5 Step 1: Wire WebSocket to Crossbeam Channel
+
+CURRENT STATE (Phase 3 Complete):
+✅ WebSocket receiving orderbook updates (official format working)
+✅ Token discovery from Gamma API
+✅ Hot path engine ready (sub-microsecond)
+✅ Circuit breakers implemented
+✅ CLOB API client ready
+
+EXISTING ARCHITECTURE:
+1. network/ws_engine.rs - WebSocket engine with WAF bypass
+   - tokio-tungstenite async WebSocket
+   - WsEvent enum: BookUpdate, Trade, Connected, Disconnected, OrderMatched
+   - Auto-reconnect with exponential backoff
+   - process_book_update() parses JSON and sends to crossbeam channel
+
+2. hot_path.rs - Zero-allocation event processing
+   - Receives WsEvent via crossbeam channel
+   - FNV-1a hash for token IDs
+   - Edge detection: YES_ask + NO_ask < threshold
+   - Sends BackgroundTask to async executor
+
+3. main.rs - Integration wiring
+   - Creates crossbeam channels (ws_tx, ws_rx) and (task_tx, task_rx)
+   - Spawns WebSocket engine (tokio async)
+   - Spawns hot_path thread (sync, pinned)
+   - Background executor handles tasks
+
+STEP 1 GOAL:
+Wire WebSocket to crossbeam channel with proper:
+- EngineEvent enum for crossbeam
+- OrderbookSnapshot struct
+- Reconnection + backoff handling
+- Parse Polymarket official WebSocket format
+
+QUESTIONS:
+1. The current ws_engine.rs already sends WsEvent via crossbeam - what changes are needed?
+2. Should we add OrderbookSnapshot as a separate struct from WsEvent::BookUpdate?
+3. How should we handle the YES/NO price tracking (Option<f64> pattern from NotebookLM)?
+4. What's the official Polymarket WebSocket format for orderbook updates?
+5. Should reconnection logic clear cached prices (reset to None)?

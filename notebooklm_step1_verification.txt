@@ -1,0 +1,27 @@
+Step 1 Implementation Ready for Verification
+
+IMPLEMENTED:
+1. Created market_state.rs module
+   - MarketPrices struct with Option<u64> for YES/NO prices
+   - Fixed-point integers (micro-USDC) - no floats
+   - combined_ask() for edge detection
+   - reset() for reconnection clearing
+
+2. Modified ws_engine.rs
+   - Parse Polymarket format: {"event":"book","asset_id":"...","bids":[...],"asks":[...]}
+   - Extract best bid/ask (first in array)
+   - Convert to micro-USDC immediately
+   - Send WsEvent::BookUpdate with token_id
+
+3. Modified hot_path.rs
+   - Integrate MarketStateManager
+   - Update prices on BookUpdate
+   - Check for edges when both YES/NO present
+   - Clear prices on disconnect
+
+QUESTIONS:
+1. Should market_state.rs be in src/ or src/network/?
+2. Should we use tokio::spawn in hot_path for async updates?
+3. Is Option<u64> the right type for prices (None until received)?
+4. Should we include token_id in WsEvent::BookUpdate or only hash?
+5. What's the correct threshold for edge detection (currently 0.94)?

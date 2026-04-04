@@ -1,0 +1,14 @@
+{
+  "lastChecks": {
+    "aws_instance": 1743763500,
+    "bot_status": 1743763500
+  },
+  "lastStatus": {
+    "aws_reachable": false,
+    "bot_running": false,
+    "timestamp": "2026-04-04T11:18:00Z",
+    "downtime_hours": "72+",
+    "alert_sent": true,
+    "notes": "AWS instance unreachable since April 1. Last known PnL: +$7,054.28 paper (10h mark). Awaiting manual AWS intervention."
+  }
+}

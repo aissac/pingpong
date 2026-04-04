@@ -1,0 +1,28 @@
+STEP 4B: Create run_sync_hot_path_v2 that processes SDK OrderbookSnapshot.
+
+CURRENT: run_sync_hot_path takes WebSocketReader and does raw JSON parsing
+NEW: run_sync_hot_path_v2 takes crossbeam_channel::Receiver<OrderbookSnapshot>
+
+OrderbookSnapshot has:
+- asset_id: String
+- best_bid_price: f64
+- best_bid_size: f64
+- best_ask_price: f64
+- best_ask_size: f64
+- timestamp: u64
+
+The hot path needs to:
+1. Receive snapshots from crossbeam channel
+2. Calculate combined_ask = best_ask_price (already in f64, no parsing needed!)
+3. Check edge threshold (combined_ask < 0.94 = 6% edge)
+4. Send to background executor if edge detected
+5. Track latency metrics
+
+Give exact Rust code for run_sync_hot_path_v2 that:
+- Takes Receiver<OrderbookSnapshot>
+- Does sub-microsecond edge detection
+- Sends BackgroundTask::EdgeDetected to opportunity_tx
+- Tracks latency with minstant
+- Handles rollover commands for token updates
+
+Keep the same edge detection logic as existing hot path, just change input source.

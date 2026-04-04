@@ -1,0 +1,148 @@
+IMPLEMENTING HYBRID MAKER-TAKER STRATEGY FOR DRY_RUN
+
+## Current Bot State
+
+We have:
+- Bot running with 12 BTC/ETH 5m/15m markets (24 tokens)
+- Edge detection at $0.98 threshold (validation mode)
+- DRY_RUN mode active (no real orders)
+- Sub-microsecond latency hot path
+- Background thread for order simulation
+
+## What We Need to Implement
+
+Per your recommendation: Hybrid Maker-Taker Strategy
+
+### Q1: How to Identify Thick vs Thin Side?
+
+When we detect an edge (Combined Ask < $0.98):
+
+Example orderbook:
+- YES: bid $0.44 (size 5000), ask $0.46 (size 100)
+- NO:  bid $0.52 (size 150), ask $0.56 (size 4000)
+
+Question: How do we determine which side is "thick" (stable) vs "thin" (volatile)?
+
+Options:
+A) Compare bid+ask sizes for each token
+B) Compare orderbook depth at top 3 levels
+C) Compare spread width (narrower = thicker)
+D) Something else?
+
+### Q2: Maker Order Logic
+
+For the THICK side, we want to post a Maker order:
+
+Pseudocode:
+- If yes_depth > no_depth:
+  - YES is thick, NO is thin
+  - Post Maker on YES (GTC Post-Only)
+  - Take Taker on NO (FAK)
+- Else:
+  - NO is thick, YES is thin
+  - Post Maker on NO (GTC Post-Only)
+  - Take Taker on YES (FAK)
+
+Question: Is this logic correct?
+
+### Q3: Post-Only Orders
+
+Question: How do we guarantee Maker status?
+
+- Use orderType "GTC" + postOnly true?
+- What if Post-Only rejects because order would cross?
+- Should we retry at different price?
+
+### Q4: DRY_RUN Simulation Logic
+
+In DRY_RUN mode, we need to simulate:
+
+When edge detected:
+- Get yes_depth and no_depth from orderbook
+- If yes_depth > no_depth:
+  - Print "[DRY_RUN] Would POST MAKER: BUY YES at price (GTC Post-Only)"
+  - Print "[DRY_RUN] Would TAKE: BUY NO at price (FAK)"
+  - Sleep 50ms
+  - Print "[DRY_RUN] Simulated MAKER MATCHED!"
+  - Sleep 100ms
+  - Print "[DRY_RUN] Simulated TAKER MATCHED!"
+
+Question: What timing should we use?
+- Maker fill simulation: 50ms? 100ms?
+- Taker fill simulation: 100ms? 200ms?
+- Stop-loss timeout: 3 seconds?
+
+### Q5: Fee Calculation Integration
+
+Function:
+fn calculate_fee(price: f64, size: f64) -> f64 {
+    let p = price;
+    let variance = p * (1.0 - p);
+    size * p * 0.072 * variance
+}
+
+Question: Should this be in hot path or background thread?
+
+### Q6: Orderbook Depth Tracking
+
+Current hot path tracks:
+- Best bid/ask prices
+- Combined price
+
+Question: Do we need to track:
+- Bid/ask sizes at top 3 levels?
+- Total orderbook depth?
+- Spread width?
+
+### Q7: DRY_RUN Output Enhancement
+
+Currently logging:
+[DEBUG] Parsed 2 tokens (orderbook size: 16)
+
+Question: Should we log:
+[EDGE] FOUND! combined=0.9678
+  YES: bid=0.44 (size: 5000), ask=0.46 (size: 100)
+  NO:  bid=0.52 (size: 150), ask=0.56 (size: 4000)
+  Thick side: YES (depth: 5100)
+  [DRY_RUN] Would POST MAKER: BUY YES at 0.46 (GTC Post-Only)
+  [DRY_RUN] Would TAKE: BUY NO at 0.56 (FAK)
+  Estimated fee: Maker 0 (0%) + Taker X (1.78%)
+
+### Q8: Implementation Priority
+
+Question: In what order should we implement:
+
+1. Thick/thin identification
+2. Maker vs Taker routing
+3. Post-Only order type
+4. Fee calculation
+5. Enhanced logging
+6. Stop-loss timer
+
+What is the minimum viable for DRY_RUN validation?
+
+### Q9: Background Thread Architecture
+
+Current architecture:
+Hot Path (sync) - Edge detection
+  - crossbeam_channel
+Background Thread (async) - DRY_RUN simulation
+
+Question: Should the thick/thin logic be in:
+- Hot path (faster, but more complex)
+- Background thread (simpler, but needs orderbook data)
+
+### Q10: Code Location
+
+Question: Where should we add:
+- Thick/thin logic: src/hft_hot_path.rs?
+- Maker/Taker routing: src/background_wiring.rs?
+- Fee calculation: New file src/fees.rs?
+
+## Please Provide
+
+1. Pseudocode for thick/thin identification
+2. DRY_RUN simulation sequence with timing
+3. Fee calculation where to put it
+4. Logging format for debugging
+5. Implementation order - what to do first

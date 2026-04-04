@@ -1,0 +1,22 @@
+STEP 1: Find currently active Polymarket markets for SDK WebSocket testing.
+
+Current situation:
+- SDK WebSocket connects successfully (proven)
+- But we cannot find active markets to test with
+- Time: 22:21 UTC April 1, 2026
+- 5m/15m BTC updown markets appear expired
+
+We need:
+1. Python script to find markets that are:
+   - active: true
+   - closed: false
+   - Have clobTokenIds (not empty)
+   - Have volume > $100 (actually trading)
+
+2. The script should:
+   - Query Gamma API: https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=500
+   - Filter for markets with clobTokenIds
+   - Show token IDs we can use for SDK WebSocket test
+   - Handle the JSON string format of clobTokenIds field
+
+Give us a working Python script that finds active markets we can test with.

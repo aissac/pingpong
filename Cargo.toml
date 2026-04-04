@@ -1,0 +1,65 @@
+[package]
+name = "market-maker"
+version = "0.3.0"
+edition = "2021"
+description = "Polymarket Market Maker - Phase 3: WebSocket + CLOB API"
+authors = ["Pingpong Bot"]
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.35", features = ["full", "sync", "time"] }
+
+# WebSocket client
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+futures-util = { version = "0.3", default-features = false, features = ["std", "tokio-io"] }
+
+# HTTP client
+reqwest = { version = "0.12", default-features = false, features = ["json", "gzip", "brotli", "deflate", "http2"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Crossbeam for lock-free channels
+crossbeam-channel = "0.5"
+
+# Error handling
+anyhow = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Environment
+dotenvy = "0.15"
+
+# Base64 encoding
+base64 = "0.22"
+
+# HMAC for API signatures
+hmac = "0.12"
+sha2 = "0.10"
+
+# For async traits
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[[bin]]
+name = "market-maker"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

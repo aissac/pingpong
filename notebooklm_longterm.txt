@@ -1,0 +1,30 @@
+LONG-TERM: What is the ideal architecture for a Polymarket HFT trading bot in 2026?
+
+Current situation:
+- AWS Frankfurt server (eu-central-1)
+- Rust sync architecture (no tokio)
+- WebSocket blocked by Cloudflare WAF (datacenter IP + TLS fingerprint)
+- REST works: 150 req/sec limit on /book endpoint
+
+Options:
+1. REST Polling (100ms intervals)
+2. Official SDK (polymarket-client-sdk with tokio)
+3. Residential Proxy + WebSocket
+4. Colocated server / bare metal
+5. Hybrid approach
+
+Questions:
+1. What do successful Polymarket market makers actually use in 2026?
+2. Is 100ms latency acceptable for 5m/15m binary options?
+3. What is the best short-term fix (48 hours)?
+4. What is the best long-term architecture (3 months)?
+5. Should we stick with REST or invest in WebSocket bypass?
+
+Please give honest, practical advice. If REST polling is actually fine for this strategy, just say so. We are trading 5m/15m binary options, not microseconds.
+
+Strategy context:
+- Dump-and-Hedge arbitrage on BTC/ETH/SOL 5m/15m Up/Down markets
+- Edge threshold: ~6% gross (~2.4% net after fees)
+- Expected opportunities: 1-3 per hour
+- Not trying to compete for every micro-edge
+- Main competition: Other retail bots, not institutional HFT firms

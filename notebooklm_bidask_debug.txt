@@ -1,0 +1,36 @@
+I need help debugging the bid/ask parsing in the HFT hot path.
+
+CURRENT ISSUE:
+First token shows: Bid=$0.29 | Ask=$0.01
+
+This is INVERTED - bid should be LOWER than ask (bid < ask always).
+
+POSSIBLE CAUSES:
+1. bids_idx/asks_idx detection is wrong
+2. WebSocket message format changed
+3. Parsing logic has bug in is_bid determination
+
+CURRENT CODE:
+```rust
+let bids_idx = bids_start.find(bytes).unwrap_or(0);
+let asks_idx = asks_start.find(bytes).unwrap_or(0);
+
+let is_bid = if bids_idx < asks_idx {
+    current_pos > bids_idx && current_pos < asks_idx
+} else {
+    current_pos > bids_idx
+};
+```
+
+QUESTION:
+1. What's the exact WebSocket message format from Polymarket?
+2. Does it send `{"bids":[...], "asks":[...]}` in one message?
+3. Or separate messages for bids vs asks?
+4. How should we correctly determine if a price update is bid or ask?
+
+SAMPLE WEBSOCKET MESSAGE FORMAT NEEDED:
+- Full JSON structure
+- Example with both bids and asks
+- Field names and nesting
+
+Please provide the correct parsing logic for determining bid vs ask side.

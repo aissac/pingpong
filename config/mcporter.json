@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "jcodemunch": {
+      "command": "/home/aissac/.local/bin/uvx",
+      "args": [
+        "jcodemunch-mcp"
+      ]
+    }
+  }
+}

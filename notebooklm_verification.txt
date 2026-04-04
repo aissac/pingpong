@@ -1,0 +1,44 @@
+I need you to verify that the bid/ask tracking is now correctly implemented.
+
+## Evidence of Correct Implementation
+
+### 1. Debug Output Shows BUY/SELL Correctly Detected
+
+```
+[DEBUG] side_bytes=Ok("BUY")
+[DEBUG] token=6990302211584129286 is_bid=true price=0.3000 size=19120000
+
+[DEBUG] side_bytes=Ok("SELL")
+[DEBUG] token=5028504035464602028 is_bid=false price=0.7000 size=19120000
+```
+
+### 2. Orderbook State After Fix
+
+```
+[HFT] ✅ Warmed up after 50 messages
+[HFT] Orderbook state: 24 tokens
+[HFT]   6 with both bid+ask
+[HFT]   0 with bid only
+[HFT]   10 with ask only
+```
+
+### 3. Code Fix Applied
+
+Changed offset from `side_idx + 9` to `side_idx + 8` because:
+- Pattern `"side":"` has 7 characters
+- We need to skip 8 characters to reach the value (7 for pattern + 1 for opening quote)
+
+### 4. WebSocket Formats Handled
+
+| Format | Detection | Bid/Ask Logic |
+|--------|-----------|---------------|
+| Book snapshot | `is_book = true` | Position relative to `"bids":[` and `"asks":[` |
+| Price changes | `is_price_changes = true` | `"side":"BUY"` → bid, `"side":"SELL"` → ask |
+
+### Questions for Verification
+
+1. Is the orderbook state (6 with both, 10 ask only) expected for incremental WebSocket updates?
+2. Are the prices being parsed correctly (fixed-point * 1,000,000)?
+3. Should we see edges triggering during market hours?
+
+Please confirm whether this implementation is correct.

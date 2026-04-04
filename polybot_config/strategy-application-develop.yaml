@@ -1,0 +1,97 @@
+hft:
+  mode: PAPER
+  events:
+    enabled: true
+    market-ws-snapshot-publish-millis: 1000
+    market-ws-cache-publish-on-start: true
+  executor:
+    base-url: http://localhost:7070
+    send-live-ack: false
+  polymarket:
+    market-ws-enabled: true
+    gamma-url: https://gamma-api.polymarket.com
+    market-ws-cache-path: .cache/ws/market-ws-cache.strategy.json
+    market-ws-cache-flush-millis: 5000
+  strategy:
+    gabagool:
+      enabled: true
+      refresh-millis: 500
+      min-replace-millis: 500
+      min-seconds-to-end: 0
+      max-seconds-to-end: 3600
+      improve-ticks: 0
+
+      # WINNING CONFIG - March 18, 2026
+      # P&L: +$306.34 | Win Rate: 78.6% (22 wins, 6 losses)
+      # DO NOT CHANGE - This config produced consistent profits
+
+      # Sizing - Aggressive but controlled
+      quote-size: 5
+      quote-size-bankroll-fraction: 0.017
+      bankroll-mode: FIXED
+      bankroll-usd: 100
+      bankroll-refresh-millis: 1000
+      bankroll-smoothing-alpha: 0.2
+      bankroll-min-threshold: 50
+      bankroll-trading-fraction: 1.0
+      max-order-bankroll-fraction: 0.011
+      max-total-bankroll-fraction: 1.0
+      max-slot-exposure-bankroll-fraction: 1.0
+
+      # Complete-set arbitrage - TIGHT EDGE for more opportunities
+      complete-set-min-edge: 0.001                     # 0.1% edge (aggressive)
+      complete-set-max-skew-ticks: 2                   # 2 ticks skew max
+      complete-set-imbalance-shares-for-max-skew: 20   # Low threshold
+      complete-set-top-up-enabled: true                # ENABLED per winning config
+      complete-set-top-up-seconds-to-end: 120
+      complete-set-top-up-min-shares: 10
+      complete-set-fast-top-up-enabled: true           # Fast rebalancing
+      complete-set-fast-top-up-min-shares: 5
+      complete-set-fast-top-up-min-seconds-after-fill: 1
+      complete-set-fast-top-up-max-seconds-after-fill: 120
+      complete-set-fast-top-up-cooldown-millis: 500    # 500ms rebalance
+      complete-set-fast-top-up-min-edge: 0.001
+
+      # Risk Controls
+      max-position-imbalance-shares: 50
+      max-slot-imbalance-usd: 30
+      order-batch-size: 5
+
+      # Slot Transition Aggression - 2x size in first 2 min
+      slot-transition-edge-boost: 0.003
+      slot-transition-size-multiplier: 2.0
+      slot-transition-taker-enabled: true
+      slot-transition-duration-seconds: 120
+
+      # Market Focus - BTC only per winning config
+      preferred-market: BTC
+      eth-max-position-fraction: 0.0
+      btc-max-position-fraction: 1.0
+
+      # Taker mode
+      taker-mode-enabled: true
+      taker-mode-max-edge: 0.01
+      taker-mode-max-spread: 0.01
+
+      # Directional asymmetric sizing (NEW - March 19, 2026)
+      # Goal: small losses when wrong, large gains when right
+      directional-enabled: true
+      directional-min-edge: 0.05              # 5% edge from fair value (0.50)
+      directional-momentum-ticks: 20          # Track last N price updates
+      directional-high-conviction: 0.70       # Confidence threshold for large size
+      directional-size-high: 3.0              # 3x base size when high conviction
+      directional-size-low: 0.3               # 0.3x base size when fading extremes
+      directional-max-loss-per-slot: 10       # Cap loss per slot at $10
+
+      # Price-based sizing rules:
+      # - Price 0.70+: SELL (fade overpriced) at 0.3x size
+      # - Price 0.55-0.70: HOLD (no edge)
+      # - Price 0.45-0.55: BUY (fair value) at 1.0x size
+      # - Price 0.30-0.45: BUY (underpriced) at 2.0x size
+      # - Price <0.30: SELL (fade extreme) at 0.3x size
+
+logging:
+  level:
+    com.polybot.hft: INFO
+    com.polybot.hft.executor.settlement: DEBUG
+    com.polybot.hft.polymarket.strategy: DEBUG

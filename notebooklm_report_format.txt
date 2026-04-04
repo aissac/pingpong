@@ -1,0 +1,60 @@
+I need a better detailed format for HFT bot monitoring reports.
+
+## Current Implementation
+
+### Binary Status
+- **Running:** hft_pingpong_v2 (PID 91369)
+- **Log:** /home/ubuntu/polymarket-hft-engine/nohup_v2.out
+- **Reporter:** /tmp/hft_reporter_v4.py (every 2 minutes)
+
+### Current Orderbook State
+```
+24 tokens total:
+• 7 with both bid+ask (3.5 pairs)
+• 9 with ask only (waiting for bids)
+• 8 waiting for updates
+```
+
+### WebSocket Message Handling
+1. **Book snapshot** (initial_dump): `{"bids":[...], "asks":[...]}`
+2. **Price changes** (updates): `{"side":"BUY" or "SELL"}`
+
+### Edge Detection
+- Combined ASK = YES Ask + NO Ask
+- Threshold: $0.98 (validation), $0.94 (live)
+- Trigger when combined_ask <= threshold
+
+### Fixed Issues
+- Side detection offset: `side_idx + 8` (was `+ 9`)
+- BUY → bid, SELL → ask
+
+## Questions for Better Monitoring
+
+1. **What metrics should I track for HFT monitoring?**
+   - Latency (processing time per message)
+   - Orderbook depth (bid/ask levels)
+   - Edge frequency (edges per minute)
+   - Fill rate (if trading)
+   - Ghost rate (liquidity vanishing)
+
+2. **What's the optimal report format for Telegram?**
+   - Current: Basic counts (markets, tokens, edges)
+   - Need: More actionable insights
+
+3. **What alerts should trigger immediate notification?**
+   - Edge detected at unusual price?
+   - Orderbook imbalance?
+   - WebSocket disconnect?
+   - Latency spike?
+
+4. **How to track Combined ASK over time?**
+   - Min/max/avg per minute
+   - Distribution histogram
+   - Trend indicator
+
+5. **What comparison metrics would help?**
+   - Current vs historical
+   - This session vs last session
+   - Market hours vs off-hours
+
+Please suggest a comprehensive report format that provides actionable insights for HFT arbitrage monitoring.

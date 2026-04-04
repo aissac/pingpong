@@ -1,0 +1,27 @@
+STEP 3: Integrate Polymarket SDK WebSocket into existing HFT bot.
+
+CURRENT ARCHITECTURE:
+- Existing bot uses raw tungstenite WebSocket (blocked by Cloudflare)
+- Hot path: run_sync_hot_path() receives orderbook data via WebSocketReader
+- Edge detection: sub-microsecond, sync Rust
+- Token discovery: market_rollover.rs
+
+NEW ARCHITECTURE (SDK):
+- Use polymarket-client-sdk WebSocket
+- SDK returns Stream<Item = Result<BookUpdate>>
+- BookUpdate has: asset_id, bids: Vec<OrderBookLevel>, asks: Vec<OrderBookLevel>
+- OrderBookLevel has: price (Decimal), size (Decimal)
+
+INTEGRATION PLAN NEEDED:
+1. Replace WebSocketReader with SDK stream
+2. Convert SDK BookUpdate to our internal format
+3. Feed to existing hot path (edge detection)
+4. Handle async SDK + sync hot path boundary
+
+Give exact Rust code for:
+1. SDK WebSocket setup in main.rs or hft_hot_path.rs
+2. Converting BookUpdate to our internal OrderbookSnapshot format
+3. Bridging async SDK stream to sync crossbeam channel for hot path
+4. Error handling and reconnection logic
+
+Keep our existing hot path unchanged - just replace the data source.

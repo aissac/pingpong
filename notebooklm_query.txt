@@ -1,0 +1,155 @@
+COMPLETE STATUS UPDATE - ALL 4 FIXES IMPLEMENTED
+
+## ✅ Implemented Fixes (All 4 Complete)
+
+### Fix #1: orderType Field ✅
+Files Modified:
+- src/execution.rs - Added order_type: &str parameter to create_order_payload()
+- src/stop_loss.rs - Added "FAK" order_type for stop-loss orders
+
+### Fix #2: HTTP/2 Keep-Alive Client ✅
+Files Modified:
+- src/execution.rs - New build_hft_client() function
+- src/bin/hft_pingpong_integrated.rs - Uses execution::build_hft_client()
+
+### Fix #3: Maker/Taker Routing ✅
+Files Created:
+- src/maker_taker_routing.rs - NEW module with determine_maker_taker()
+
+### Fix #4: Pre-Warm Connections ✅
+Files Modified:
+- src/execution.rs - New pre_warm_connections() function
+- src/bin/hft_pingpong_integrated.rs - Calls before hot path
+
+## ✅ Build Status
+cargo build --release --lib
+   Finished release profile in 5.99s
+   0 errors, 78 warnings (unused variables)
+
+## ❌ NOT YET IMPLEMENTED
+
+### 1. Wire execute_arbitrage_pair() into Background Thread
+Current State:
+- Background thread receives EdgeDetected from crossbeam channel
+- Placeholder prints "[DRY RUN] Would execute arbitrage"
+- execute_arbitrage_pair() exists in maker_taker_routing.rs but NOT wired
+
+### 2. User WebSocket Taker FAK Trigger
+Current State:
+- user_ws.rs exists but NOT integrated
+- Need to listen for Maker MATCHED events
+- Need to trigger Taker FAK order
+
+### 3. DRY_RUN Testing Logic
+NotebookLM said: In DRY_RUN, simulate fake MATCHED event
+
+### 4. Token Hash to Token ID Mapping
+Current State:
+- Hot path uses 64-bit token_hash for speed
+- Need to map token_hash back to full 66-char token_id
+- Need to lookup YES/NO tokens from condition_id
+
+## ❓ QUESTIONS FOR NOTEBOOKLM
+
+### Q1: Wire Order
+What's the correct order to wire these?
+1. execute_arbitrage_pair() integration?
+2. User WebSocket MATCHED event handling?
+3. Token hash to ID mapping?
+
+### Q2: Hot Path Integration
+The hot path sends this via crossbeam:
+BackgroundTask::EdgeDetected { 
+    token_hash: u64,
+    combined_price: u64,
+    yes_size: u64,
+    no_size: u64,
+}
+
+Need to:
+1. Get condition_id from token_hash
+2. Get YES token ID and NO token ID
+3. Call execute_arbitrage_pair()
+
+Where is this mapping stored?
+
+### Q3: DRY_RUN Simulation
+Should I:
+- Add a DRY_RUN simulation thread?
+- Or modify execute_arbitrage_pair() to auto-trigger Taker?
+
+### Q4: User WebSocket Implementation
+What's the correct integration pattern?
+- Spawn in background thread?
+- Share state via Arc<ExecutionState>?
+- How to communicate with hot path?
+
+### Q5: State Management
+Need to add:
+- token_hash_to_id: HashMap<u64, String>?
+- token_hash_to_condition: HashMap<u64, String>?
+
+### Q6: Signing Implementation
+Where do I:
+- Store the signer?
+- Get private key from .env?
+- Sign each order?
+
+### Q7: Complete Flow
+Please confirm this flow is correct:
+
+1. Hot path detects edge - sends BackgroundTask::EdgeDetected
+2. Background thread receives edge
+3. Maps token_hash to YES/NO token IDs
+4. Determines Maker (GTC) vs Taker (FAK) based on depth
+5. Signs Maker order
+6. POSTs Maker order to CLOB (or DRY_RUN)
+7. Stores order_id in pending_hedges
+8. User WS listens for MATCHED event
+9. On MATCHED, User WS signs Taker order
+10. POSTs Taker FAK to CLOB
+11. Starts 3-second stop-loss timer
+12. If Taker fills, CTF merge worker recycles capital
+
+Is this correct? What is missing?
+
+### Q8: Testing Strategy
+How should I test in DRY_RUN?
+- Simulate Maker MATCHED after X ms?
+- Simulate Taker fill after Y ms?
+- What values for X and Y?
+
+### Q9: Production Readiness
+What else needs to be done before going live?
+- Environment variables in .env?
+- Token allowances executed?
+- Gnosis Safe signature type = 2?
+- API key/secret setup?
+
+### Q10: Next Immediate Step
+What should I implement RIGHT NOW?
+- Be specific about which file to modify
+- Be specific about which function to write
+- Be specific about integration points
+
+## CURRENT FILES STATUS
+
+| File | Status | Notes |
+|------|--------|-------|
+| execution.rs | ✅ Compiles | orderType, build_hft_client, pre_warm |
+| stop_loss.rs | ✅ Compiles | FAK order_type |
+| maker_taker_routing.rs | ✅ Compiles | determine_maker_taker() |
+| hft_pingpong_integrated.rs | ✅ Compiles | Uses build_hft_client, pre_warm |
+| user_ws.rs | ⏳ Exists | NOT integrated |
+| merge_worker.rs | ⏳ Exists | NOT integrated |
+| signing.rs | ✅ Compiles | init_signer() ready |
+| state.rs | ✅ Compiles | ExecutionState + HedgeContext |
+| condition_map.rs | ✅ Compiles | condition_id lookup |
+
+## PLEASE ADVISE
+
+1. Which integration to do FIRST?
+2. What is the exact code for that integration?
+3. How to test in DRY_RUN?
+4. How to get token_hash to token_id mapping?
+5. How to wire User WebSocket?

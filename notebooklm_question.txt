@@ -1,0 +1,72 @@
+HFT BOT CRASH PROBLEM - NEED AUTO-RECONNECT SOLUTION
+
+CONTEXT:
+- Built Polymarket HFT trading bot in Rust
+- Implemented 30-second TCP timeout (Option C: set timeout BEFORE TLS handshake)
+- TCP timeout WORKS - detects dead WebSocket connections
+- PROBLEM: When timeout triggers, bot exits instead of reconnecting
+
+CURRENT ARCHITECTURE:
+
+websocket_reader.rs:
+pub fn connect_to_polymarket(tokens: Vec<String>) -> WebSocketReader {
+    let tcp_stream = TcpStream::connect("ws-subscriptions-clob.polymarket.com:443");
+    tcp_stream.set_read_timeout(Some(Duration::from_secs(30))); // 30s timeout
+    let (socket, _) = client_tls(url, tcp_stream); // TLS handshake
+    WebSocketReader { socket, buffer: vec![] }
+}
+
+hft_hot_path.rs:
+pub fn run_sync_hot_path(ws_reader: &mut WebSocketReader, ...) {
+    loop {
+        match ws_reader.socket.read() {
+            Ok(msg) => { /* process */ }
+            Err(Error::Io(e)) if e.kind() == ErrorKind::TimedOut => {
+                eprintln!("[TCP TIMEOUT] 30s silence detected");
+                break; // EXITS - no reconnect
+            }
+        }
+    }
+}
+
+bin/hft_pingpong_v2.rs:
+fn main() {
+    let mut ws_reader = connect_to_polymarket(tokens);
+    run_sync_hot_path(&mut ws_reader, ...); // Single call, no loop
+}
+
+PROBLEM DETAILS:
+- Bot ran for 889 seconds (~15 min)
+- WebSocket connection reset: "Connection reset without closing handshake"
+- TCP timeout detected it correctly
+- Bot called break and exited main()
+- No auto-reconnect logic
+- Bash watchdog will restart in 3 min (backup), but we want instant recovery
+
+CONSTRAINTS:
+1. Must maintain sub-microsecond latency in hot path
+2. Zero-allocation design (no heap in hot path)
+3. Cannot use tokio async (adds overhead)
+4. Must use sync tungstenite WebSocket
+5. TCP timeout must stay at OS level (before TLS)
+
+REQUESTS:
+1. What is the SIMPLEST architecture to add auto-reconnect?
+2. Should we wrap run_sync_hot_path() in a restart loop in main()?
+3. Or use a Bash wrapper script with "while true; do ./bot; sleep 5; done"?
+4. What state needs to be preserved across reconnects (token mappings, etc.)?
+5. How to handle graceful reconnection (unsubscribe old, subscribe new)?
+6. What are the risks of each approach?
+
+PREFERRED SOLUTION CRITERIA:
+- Minimal code changes (like Option C was)
+- No complex state management
+- Instant recovery (<10 sec)
+- Maintains current latency/performance
+- Works with existing TCP timeout architecture
+
+Please provide:
+1. Recommended architecture (Rust loop vs Bash wrapper)
+2. Exact code changes needed
+3. Trade-offs and risks
+4. Implementation priority (what to do first)

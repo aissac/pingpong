@@ -1,0 +1,27 @@
+I need help integrating WebSocket into the HFT hot path.
+
+CURRENT STATE:
+- Hot path function signature: `run_sync_hot_path<R: Read>(mut ws_stream: R, ...)`
+- Currently called with: `run_sync_hot_path(std::io::stdin(), ...)`
+- This reads from stdin instead of WebSocket!
+
+EXISTING WEBSOCKET CODE (from hot_switchover.rs):
+- Uses tokio_tungstenite: `tokio_tungstenite::{connect_async, tungstenite::Message}`
+- WebSocket URL: `wss://ws-subscriptions-clob.polymarket.com/ws/market`
+- Subscribe format: `{"type": "subscribe", "tokens": ["token1", "token2", ...]}`
+
+QUESTION:
+1. How do I connect sync tungstenite WebSocket and pass it to run_sync_hot_path?
+2. Should I use sync tungstenite (no tokio) or bridge async to sync?
+3. What's the pattern for connecting WebSocket and reading messages in a hot path?
+
+CONSTRAINTS:
+- Hot path must remain sync (no async) for sub-microsecond latency
+- WebSocket connection should be established before hot path starts
+- Need to subscribe to 24 tokens (BTC/ETH 5m/15m markets)
+
+Please provide the exact code pattern for:
+1. Establishing WebSocket connection
+2. Subscribing to tokens
+3. Passing the stream to run_sync_hot_path
+4. Reading messages in the hot path loop

@@ -1,0 +1,89 @@
+Here is the complete inventory_tracker.rs code for review:
+
+```rust
+use std::collections::BTreeMap;
+
+#[repr(C, align(64))]
+pub struct MarketInventory {
+    pub yes_shares: u64,
+    pub no_shares: u64,
+    pub yes_token_id: String,
+    pub no_token_id: String,
+    pub last_update_ns: u64,
+}
+
+impl MarketInventory {
+    pub const fn new() -> Self {
+        Self {
+            yes_shares: 0,
+            no_shares: 0,
+            yes_token_id: String::new(),
+            no_token_id: String::new(),
+            last_update_ns: 0,
+        }
+    }
+    
+    pub fn get_skew(&self) -> i64 {
+        (self.yes_shares as i64) - (self.no_shares as i64)
+    }
+    
+    pub fn apply_fill(&mut self, is_yes: bool, amount: u64, timestamp_ns: u64) {
+        if is_yes {
+            self.yes_shares += amount;
+        } else {
+            self.no_shares += amount;
+        }
+        self.last_update_ns = timestamp_ns;
+    }
+}
+
+pub struct InventoryTracker {
+    pub markets: BTreeMap<String, MarketInventory>,
+}
+
+impl InventoryTracker {
+    pub fn new() -> Self {
+        Self {
+            markets: BTreeMap::new(),
+        }
+    }
+    
+    pub fn pre_warm_market(&mut self, condition_id: String, yes_token: String, no_token: String) {
+        let mut inventory = MarketInventory::new();
+        inventory.yes_token_id = yes_token;
+        inventory.no_token_id = no_token;
+        self.markets.insert(condition_id, inventory);
+    }
+    
+    pub fn update_inventory_from_trade(&mut self, raw_bytes: &mut [u8]) {
+        use simd_json;
+        
+        if let Ok(trade) = simd_json::from_slice::<TradePayload>(raw_bytes) {
+            if trade.event != "trade" || (trade.status != "matched" && trade.status != "mined") {
+                return;
+            }
+            
+            let is_buy = trade.side == "BUY";
+            
+            if let Some(inventory) = self.markets.get_mut(&trade.condition_id) {
+                let is_yes = trade.asset == inventory.yes_token_id;
+                
+                if is_buy {
+                    inventory.apply_fill(is_yes, trade.size as u64, trade.timestamp);
+                } else {
+                    inventory.apply_fill(is_yes, trade.size as u64, trade.timestamp);
+                }
+            } else {
+                eprintln!("Trade received for unknown condition_id: {}", trade.condition_id);
+            }
+        }
+    }
+}
+```
+
+Please review for:
+1. Cache alignment issues
+2. String allocations in hot path
+3. Thread safety concerns  
+4. Correctness of the BUY/SELL logic
+5. Any other performance problems

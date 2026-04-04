@@ -1,0 +1,25 @@
+I need help with the WebSocket message format for Polymarket.
+
+CURRENT DEBUG OUTPUT:
+All messages are showing `SELL` side only:
+- token=5028504035464602028 side=SELL price=0.0100
+- token=15206760660350646285 side=SELL price=0.9990
+- token=8877243899733987719 side=SELL price=0.9900
+
+No BUY messages are being detected.
+
+QUESTIONS:
+1. Does Polymarket WebSocket send BUY and SELL orders in the same message?
+2. What's the exact message format for orderbook updates?
+3. Do we need to subscribe differently to get both sides?
+4. Is there an initial orderbook snapshot that contains both bids and asks?
+
+The current pattern search is:
+```
+let side_pattern = memmem::Finder::new(b"\"side\":\"");
+```
+
+But if the message format is different (e.g., "buy" vs "BUY", or no "side" field at all), we won't find it.
+
+SAMPLE MESSAGE NEEDED:
+Can you show me a sample Polymarket WebSocket message that contains BOTH buy and sell orders?
