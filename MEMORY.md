@@ -596,3 +596,68 @@ if let Some(prev_slot) = p.slot_traded {
 
 ### GitHub Commit
 - `dee52d8` - Fix: seamless slot transitions
+
+---
+
+## Session 2026-04-05: EVENT-DRIVEN ARCHITECTURE (Bug 1-5 Fix)
+
+### NotebookLM Recommendations Implemented
+
+**Bug 1: Discovery Gap**
+- ✅ `new_market` WS event for instant discovery
+- ✅ `custom_feature_enabled: true` in initial subscription
+- ✅ Markets added dynamically without polling
+
+**Bug 2: Clock Mismatch**
+- ✅ Replaced `now / 300 * 300` with REST `/series?slug=...`
+- ✅ Uses `active=true&closed=false` filters
+- ✅ No local clock dependency for market discovery
+
+**Bug 3: Rollover Never Fires**
+- ✅ `market_resolved` WS event handler added
+- ✅ Removes market from tracking on resolution
+- ✅ Dynamic unsubscribe from resolved tokens
+
+**Bug 4: WS Subscription Never Updates**
+- ✅ Dynamic subscribe/unsubscribe without reconnect
+- ✅ `build_subscribe_message()` and `build_unsubscribe_message()`
+- ✅ Add/remove tokens on-the-fly
+
+**Bug 5: Stall on 0 Markets**
+- ✅ REST fallback with `/series` endpoint
+- ✅ Takes last 3 active markets per series
+- ✅ Filters `closed=false&active=true`
+
+### New Code Structure
+
+```rust
+// Discovery via REST (Bug 2 & 5)
+async fn discover_active_markets() -> Result<Vec<Market>>
+
+// Dynamic WS subscribe/unsubscribe (Bug 4)
+fn build_subscribe_message(tokens: &[String]) -> serde_json::Value
+fn build_unsubscribe_message(tokens: &[String]) -> serde_json::Value
+
+// Event handlers (Bug 1 & 3)
+// - new_market: Add market, subscribe to tokens
+// - market_resolved: Remove market, unsubscribe from tokens
+```
+
+### Gamma API Endpoints Used
+
+| Purpose | Endpoint |
+|---------|----------|
+| Series discovery | `GET /series?slug=btc-up-or-down-5m` |
+| Market details | `GET /markets?slug=btc-updown-5m-xxx` |
+| Active filter | `closed=false&active=true` |
+
+### WebSocket Events
+
+| Event | Action |
+|-------|--------|
+| `new_market` | Parse `assets_ids`, add to tracking, subscribe |
+| `market_resolved` | Get `winning_asset_id`, remove from tracking, unsubscribe |
+| `price_changes` | Update orderbook, trigger strategies |
+
+### GitHub Commit
+- `event-driven` - Event-driven architecture (Bug 1-5 fixes)
