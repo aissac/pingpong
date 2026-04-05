@@ -554,3 +554,45 @@ Example: LEG1 NO @ 40¢, LEG2 YES @ 78¢ (combined 118¢)
 
 ### GitHub Commit
 - Pending (build errors being fixed)
+
+---
+
+## Session 2026-04-05: SEAMLESS SLOT TRANSITIONS (CRITICAL FIX)
+
+### The Bug Found
+
+When slot changes (every 5 min for 5M, every 15 min for 15M), `slot_traded` resets but **LEG1 state doesn't**:
+
+| Field | Before Fix | Problem |
+|-------|------------|---------|
+| `slot_traded` | ✅ Resets | Works |
+| `leg1_side` | ❌ Stale | LEG1 from previous slot |
+| `leg1_price` | ❌ Stale | Wrong price |
+| `leg1_time` | ❌ Stale | Wrong timestamp |
+| `leg2_filled` | ❌ Stale | Could skip LEG2 |
+
+**Example Bug Scenario:**
+1. Slot A (22:30-22:45): LEG1 triggers at 22:35
+2. Slot B starts (22:45-23:00): `slot_traded` resets, but `leg1_side` still = "YES"
+3. LEG2 logic sees stale LEG1 from Slot A → **WRONG HEDGE!**
+
+### The Fix
+
+Added **SEAMLESS SLOT TRANSITION** check at start of `check_strategies`:
+
+```rust
+// SEAMLESS SLOT TRANSITION: Reset LEG state when entering new slot
+if let Some(prev_slot) = p.slot_traded {
+    if prev_slot != current_slot {
+        // New slot detected - reset all LEG state
+        p.leg1_side = None;
+        p.leg1_price = None;
+        p.leg1_time = None;
+        p.leg2_filled = false;
+        p.leg1_shares = None;
+    }
+}
+```
+
+### GitHub Commit
+- `dee52d8` - Fix: seamless slot transitions
