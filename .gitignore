@@ -1,0 +1,36 @@
+# Build artifacts
+target/
+*.rs.bk
+
+# Generated outputs
+graphify-out/
+config/graphify-out
+.archive/
+
+# Memory/dreams (personal)
+memory/.dreams/
+memory/heartbeat-state.json
+
+# Raw data
+raw/
+
+# OS junk
+.DS_Store
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# NotebookLM exports
+notebooklm_*.txt
+
+# MCP servers (installed separately)
+.mcporter/
+
+# Local config overrides
+config/local.json
