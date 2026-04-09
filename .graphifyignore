@@ -1,0 +1,81 @@
+# === GARBAGE (never graph) ===
+# Root-level junk
+0
+*.swp
+.DS_Store
+
+# Iteration garbage at root (NOT source files)
+fix_*.py
+add_*.py
+check_*.py
+write_*.py
+apply_*.py
+replace_*.py
+merge_*.py
+integrate_*.py
+rewrite_*.py
+derive_*.py
+manual_*.py
+tmp_*.py
+dedupe_*.py
+debug_*.py
+analyze_*.py
+profile_*.py
+query_*.py
+extract_*.py
+final_*.py
+continuous_*.py
+copytrader_*.py
+pingpong_*.py
+pnl_*.py
+report_*.py
+implement_*.py
+log_*.py
+test_*.py
+stop_*.py
+start_*.py
+update_*.py
+clean_*.py
+complete_*.py
+http2_*.py
+maker_*.py
+sdk_*.py
+find_*.py
+deep_*.py
+
+# Rust iteration garbage (NOT the actual hot path source)
+*_fix.rs
+*_debug.rs
+*_stable.rs
+*_v3.rs
+*_v4.rs
+*_loop_fix.rs
+*_event_driven.rs
+
+# Build / deps
+target/
+vendor/
+deps/
+
+# Memory / personal notes
+memory/
+notebooklm_*.txt
+
+# AWS / raw data
+aws/
+raw/
+
+# Archived wiki
+.archive/
+
+# Graph output
+graphify-out/
+config/graphify-out
+
+# Bin dirs
+bin/
+
+# Standalone test projects
+polymarket-ws-test/
+polybot_config/
+scripts/
