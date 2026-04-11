@@ -5,7 +5,7 @@ Skills define _how_ tools work. This file is for _your_ specifics — the stuff 
 ## 🏓 Token Efficiency Stack (April 9, 2026)
 
 **Priority order when answering code questions:**
-1. **Graphify** → run `mcporter call graphify query_graph ...` for architecture/codebase questions (vs reading raw files)
+1. **Graphify** → `query_graph` (BFS=overview, DFS=trace flow), `shortest_path` (A→B), `get_community` (strategy group), `get_neighbors` (dependencies), `god_nodes` (core abstractions)
 2. **jcodemunch** → `mcporter call jcodemunch <tool>` for refactoring, smell detection, dead code, dependency analysis, docs generation
 3. **RTK** → manually prepend `rtk` to expensive shell commands: `rtk git status`, `rtk cargo build`, `rtk ls`, `rtk grep`
 4. **grep/rg** → last resort for file contents, not architecture navigation
@@ -58,45 +58,50 @@ notebooklm artifact list            # List generated artifacts
 
 ---
 
-## 🏓 Wiki Usage Commitment (April 6, 2026)
-
-**Rule:** Before answering questions about bot behavior, strategies, performance, or infrastructure:
-
-1. **Query the wiki first** — `/home/aissac/.openclaw/workspace/wiki/`
-2. **Then supplement with memory** — Only if wiki doesn't have it
-3. **Write new knowledge to wiki** — Not just memory files
-
-**Why:** The wiki is the curated, compounding knowledge base. Memory files are raw logs.
-
-**Trigger phrases that should hit the wiki:**
-- "What's our current latency?"
-- "How does [strategy] work?"
-- "Show me bug fixes"
-- "What's the AWS status?"
-- "Ghost simulation results?"
-
-**Habit reinforcement:** This note persists across sessions. Read it, follow it.
-
-## 🏛️ MemPalace Integration (April 9, 2026)
-
-**MCP Server:** `mempalace` (wired via mcporter, stdio transport)
-**Command:** `python3 -m mempalace.mcp_server`
-**Tools:** 19 (search, status, KG query/add/invalidate, diary write/read, taxonomy, tunnels, etc.)
+## Recall Stack (April 11, 2026 — 4 layers, streamlined)
 
 ### Wake-up Protocol
-On every session start, call `mcporter call mempalace.mempalace_status` to load palace overview + AAAK spec.
+On every session start, verify recall stack is working:
+1. `memory_search` — check it returns relevant results
+2. `lcm_grep` — verify LCM DB is accessible (181 summaries, working)
+3. `mcporter call mempalace mempalace_status` — verify palace is responsive (829 drawers)
+4. `mcporter call graphify query_graph question="test"` — verify graphify is live
+5. Active Memory auto-runs before replies — no manual check needed
 
-### Recall Priority
-1. **Wiki** — for bot/infrastructure questions
-2. **MemPalace** — for people, projects, decisions, past events (semantic search via ChromaDB)
-3. **memory_search** — fallback (currently broken due to Ollama `/api/embeddings` vs `/api/embed` mismatch)
-4. **Daily memory files** — raw logs
+### The Stack
+1. **Memory Search** (`memory_search`) — curated long-term memory (MEMORY.md + daily files). nomic-embed-text, 768 dims, 472 chunks. Primary recall for "what do I know about X"
+2. **LCM** (`lcm_grep` / `lcm_expand_query`) — exact conversation recall, compressed summaries with citation DAG. 181 summaries. Use for "what exact command was run" or verifying precise claims
+3. **MemPalace** (`mcporter call mempalace mempalace_search`) — 829 sessions indexed, semantic search with similarity scores, knowledge graph. Use for conceptually related discussions across all past sessions
+4. **Active Memory** — auto-injects relevant memory context before each reply. Uses memory_search + memory_get. No manual action needed
+5. **Graphify** (`mcporter call graphify ...`) — codebase architecture. 1439 nodes, 123 communities
+   - `query_graph question=X` — BFS overview (default)
+   - `query_graph question=X mode=dfs` — trace execution flow
+   - `shortest_path source=A target=B` — path between concepts
+   - `get_community community_id=N` — strategy group (e.g., Community 1 = all strategies)
+   - `get_neighbors label=X relation_filter=calls` — what depends on X
+   - `get_node label=X` — full detail on struct/function
+   - `god_nodes top_n=5` — core abstractions
+
+### Supporting Systems
+- **Dreams** — auto-promotes short-term recall → MEMORY.md daily at 3am. Thresholds: minScore=0.6, minRecallCount=2, minUniqueQueries=2
+- **MEMORY.md** — curated knowledge, updated manually + by Dreams auto-promotion
+
+### Never Guess — Always Check First
+Before answering "how does X work" or "what did we decide about Y":
+- Curated knowledge → memory_search
+- Exact quotes/citations → LCM
+- Semantic session search → MemPalace
+- Code questions → Graphify
+- Active Memory handles common recall automatically
+- If unsure, check. Wrong is worse than slow.
 
 ### Key Commands
-- `mcporter call mempalace.mempalace_search query="auth decisions"`
-- `mcporter call mempalace.mempalace_kg_query entity="Alice"`
-- `mcporter call mempalace.mempalace_diary_write agent_name="Pingpong" entry="SESSION:..."`
-- `mcporter call mempalace.mempalace_diary_read agent_name="Pingpong"`
+- `memory_search query="AWS downtime"` — curated long-term memory
+- `lcm_grep query="whale strategy"` — exact text search in conversation history
+- `lcm_expand_query summaryIds=["sum_xxx"] prompt="What strategy was decided?"` — deep recall with citations
+- `mcporter call mempalace mempalace_search query="whale strategy"` — semantic search across 829 sessions
+- `mcporter call graphify query_graph question="how does X work"` — codebase architecture
 
-### AAAK Dialect
-MemPalace uses AAAK for compressed diary entries. Entity codes (3-letter uppercase), emotion markers (*warm*, *fierce*), pipe-separated fields. Get full spec via `mcporter call mempalace.mempalace_get_aaak_spec`.
+### Killed / Removed
+- ~~Short-term Recall~~ — was broken, replaced by Dreams
+- ~~Wiki~~ — never built; Graphify's GRAPH_REPORT.md replaces it for code

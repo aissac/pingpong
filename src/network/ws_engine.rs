@@ -28,6 +28,7 @@ pub enum WsEvent {
     /// Orderbook update
     BookUpdate {
         token_hash: u64,
+        token_id: String,
         bid_price: u64,
         bid_size: u64,
         ask_price: u64,
@@ -37,6 +38,7 @@ pub enum WsEvent {
     /// Trade occurred
     Trade {
         token_hash: u64,
+        token_id: String,
         price: u64,
         size: u64,
         side: TradeSide,
@@ -237,60 +239,63 @@ impl WsEngine {
         // Update last message time
         *self.last_message.write().await = Instant::now();
 
-        // Spawn ping task
-        let ping_sender = ws_sender.clone();
-        let ping_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(Duration::from_secs(PING_INTERVAL_SECS));
-            loop {
-                interval.tick().await;
-                // Ping is handled automatically by tungstenite
-                // But we can send custom ping if needed
-            }
-        });
+        // Update last message time
+        *self.last_message.write().await = Instant::now();
 
         // Message receive loop
-        while let Some(msg) = ws_receiver.next().await {
-            match msg {
-                Ok(Message::Text(text)) => {
-                    *self.last_message.write().await = Instant::now();
-                    *self.message_count.write().await += 1;
-                    
-                    // Parse and process message
-                    if let Err(e) = self.process_message(&text).await {
-                        eprintln!("[WS] ⚠️ Message parse error: {:?}", e);
-                    }
-                }
-                Ok(Message::Binary(data)) => {
-                    *self.last_message.write().await = Instant::now();
-                    *self.message_count.write().await += 1;
-                    
-                    // Try to parse as UTF-8 text
-                    if let Ok(text) = std::str::from_utf8(&data) {
-                        if let Err(e) = self.process_message(text).await {
-                            eprintln!("[WS] ⚠️ Binary message parse error: {:?}", e);
+        loop {
+            tokio::select! {
+                msg = ws_receiver.next() => {
+                    match msg {
+                        Some(Ok(Message::Text(text))) => {
+                            *self.last_message.write().await = Instant::now();
+                            *self.message_count.write().await += 1;
+                            
+                            // Parse and process message
+                            if let Err(e) = self.process_message(&text).await {
+                                eprintln!("[WS] ⚠️ Message parse error: {:?}", e);
+                            }
                         }
+                        Some(Ok(Message::Binary(data))) => {
+                            *self.last_message.write().await = Instant::now();
+                            *self.message_count.write().await += 1;
+                            
+                            // Try to parse as UTF-8 text
+                            if let Ok(text) = std::str::from_utf8(&data) {
+                                if let Err(e) = self.process_message(text).await {
+                                    eprintln!("[WS] ⚠️ Binary message parse error: {:?}", e);
+                                }
+                            }
+                        }
+                        Some(Ok(Message::Ping(data))) => {
+                            // Respond with pong
+                            let _ = ws_sender.send(Message::Pong(data)).await;
+                        }
+                        Some(Ok(Message::Pong(_))) => {
+                            // Pong received - connection alive
+                        }
+                        Some(Ok(Message::Close(_))) => {
+                            println!("[WS] Close frame received");
+                            break;
+                        }
+                        Some(Err(e)) => {
+                            eprintln!("[WS] ❌ WebSocket error: {:?}", e);
+                            break;
+                        }
+                        None => {
+                            println!("[WS] Stream ended");
+                            break;
+                        }
+                        _ => {}
                     }
                 }
-                Ok(Message::Ping(data)) => {
-                    // Respond with pong
-                    let _ = ws_sender.send(Message::Pong(data)).await;
+                _ = tokio::time::sleep(Duration::from_secs(PING_INTERVAL_SECS)) => {
+                    // Send ping to keep connection alive
+                    let _ = ws_sender.send(Message::Ping(vec![])).await;
                 }
-                Ok(Message::Pong(_)) => {
-                    // Pong received - connection alive
-                }
-                Ok(Message::Close(_)) => {
-                    println!("[WS] Close frame received");
-                    break;
-                }
-                Err(e) => {
-                    eprintln!("[WS] ❌ WebSocket error: {:?}", e);
-                    break;
-                }
-                _ => {}
             }
         }
 
-        ping_handle.abort();
         Ok(())
     }
 
@@ -565,9 +570,6 @@ mod tests {
     fn test_ws_config_defaults() {
         let config = WsConfig::default();
         assert!(config.url.contains("polymarket"));
-        assert!(config.user_agent.contains("Chrome"));
-    }
-}!(config.url.contains("polymarket"));
         assert!(config.user_agent.contains("Chrome"));
     }
 }

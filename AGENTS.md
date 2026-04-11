@@ -14,7 +14,7 @@ Before doing anything else:
 2. Read `USER.md` — this is who you're helping
 3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
 4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
-5. **MemPalace wake-up**: Call `mcporter call mempalace.mempalace_status` to load palace overview + AAAK spec
+5. **Recall stack check**: Quick verify that memory_search, MemPalace, LCM, and Graphify are responsive
 
 Don't ask permission. Just do it.
 

@@ -53,6 +53,10 @@ tokio-test = "0.4"
 name = "market-maker"
 path = "src/main.rs"
 
+[[bin]]
+name = "arb_bot"
+path = "bin/arb_bot.rs"
+
 [profile.release]
 opt-level = 3
 lto = true

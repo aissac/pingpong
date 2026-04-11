@@ -5,6 +5,19 @@
       "args": [
         "jcodemunch-mcp"
       ]
+    },
+    "mempalace": {
+      "command": "python3 -m mempalace.mcp_server"
+    },
+    "graphify": {
+      "command": "python3",
+      "args": [
+        "-m",
+        "graphify.serve",
+        "graphify-out/graph.json"
+      ],
+      "cwd": "/home/aissac/.openclaw/workspace"
     }
-  }
+  },
+  "imports": []
 }

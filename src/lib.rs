@@ -13,6 +13,7 @@ pub mod api_client;
 pub mod inventory_tracker;
 pub mod quote_manager;
 pub mod hot_path;
+pub mod market_state;
 
 pub mod network {
     pub mod ws_engine;

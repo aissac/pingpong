@@ -119,6 +119,7 @@ impl HotPath {
         match event {
             WsEvent::BookUpdate {
                 token_hash,
+                token_id: _,
                 bid_price,
                 bid_size,
                 ask_price,
@@ -137,6 +138,7 @@ impl HotPath {
             }
             WsEvent::Trade {
                 token_hash,
+                token_id: _,
                 price,
                 size,
                 side: _,

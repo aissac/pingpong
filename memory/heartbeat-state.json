@@ -1,14 +1,23 @@
 {
   "lastChecks": {
-    "aws_instance": 1743851160,
-    "bot_status": 1743851160
+    "aws_instance": 1743925600,
+    "bot_status": 1743925600,
+    "security_alert": 1744047231
   },
   "lastStatus": {
-    "aws_reachable": false,
-    "bot_running": false,
-    "timestamp": "2026-04-04T14:31:00Z",
-    "downtime_hours": "72+",
-    "alert_sent": true,
-    "notes": "AWS instance unreachable since April 1. Last known PnL: +$7,054.28 paper (10h mark). Awaiting manual AWS intervention."
+    "aws_reachable": true,
+    "bot_running": true,
+    "timestamp": "2026-04-07T16:13:00Z",
+    "aws_ip": "3.77.156.196",
+    "bot_pid": 283342,
+    "uptime": "2+ days",
+    "local_time": "Tuesday April 7, 2026 12:13 PM ET"
+  },
+  "securityAlertSent": {
+    "timestamp": "2026-04-07T16:14:00Z",
+    "channel": "telegram",
+    "target": "1798631768",
+    "messageId": "19969",
+    "type": "malware_detection"
   }
 }
